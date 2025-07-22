@@ -10,13 +10,13 @@ let cityLookup;
 async function initializeDatabase() {
   try {
     // For Vercel, place the database file in the same directory as server.js
-    const dbPath = path.join(__dirname, "GeoLite2-City.mmdb");
+    const dbPath = path.join(__dirname, "GeoLite2-Country.mmdb");
     cityLookup = await maxmind.open(dbPath);
     console.log("MaxMind database loaded successfully");
   } catch (error) {
     console.error("Failed to load MaxMind database:", error.message);
     console.log(
-      "Please ensure you have GeoLite2-City.mmdb in the root directory"
+      "Please ensure you have GeoLite2-Country.mmdb in the root directory"
     );
   }
 }
@@ -337,9 +337,9 @@ app.get("/health", (req, res) => {
 });
 
 // 404 handler for all other routes
-app.all("*", (req, res) => {
-  res.status(404).send("Not Found");
-});
+// app.all("*", (req, res) => {
+//   res.status(404).send("Not Found");
+// });
 
 // Initialize database
 initializeDatabase();
