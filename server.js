@@ -10,8 +10,7 @@ let cityLookup;
 async function initializeDatabase() {
   try {
     // For Vercel, place the database file in the same directory as server.js
-    const dbPath = path.join(__dirname, "GeoLite2-Country.mmdb");
-    cityLookup = await maxmind.open(dbPath);
+    cityLookup = await maxmind.open("GeoLite2-Country.mmdb");
     console.log("MaxMind database loaded successfully");
   } catch (error) {
     console.error("Failed to load MaxMind database:", error.message);
