@@ -5,6 +5,7 @@ const fs = require("fs");
 const https = require("https");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 let cityLookup = null;
 
@@ -372,5 +373,7 @@ app.get("/api/country", (req, res) => {
 // Initialize database
 initializeDatabase();
 
-// Export the Express app for Vercel
-module.exports = app;
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
