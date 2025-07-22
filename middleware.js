@@ -47,26 +47,26 @@ export async function middleware(request) {
       const response = NextResponse.rewrite(url);
 
       // Add geo data to headers for the blocked page
-      response.headers.set("x-user-country", countryCode || "Unknown");
-      response.headers.set("x-user-country-name", countryName || "Unknown");
-      response.headers.set("x-user-city", city || "Unknown");
-      response.headers.set("x-user-region", region || "Unknown");
-      response.headers.set("x-user-ip", ip);
-      response.headers.set("x-geo-source", source || "unknown");
-      response.headers.set("x-access-denied", "true");
+      // response.headers.set("x-user-country", countryCode || "Unknown");
+      // response.headers.set("x-user-country-name", countryName || "Unknown");
+      // response.headers.set("x-user-city", city || "Unknown");
+      // response.headers.set("x-user-region", region || "Unknown");
+      // response.headers.set("x-user-ip", ip);
+      // response.headers.set("x-geo-source", source || "unknown");
+      // response.headers.set("x-access-denied", "true");
 
       return response;
     }
 
     // Allow access and pass geo data to the page
     const response = NextResponse.next();
-    response.headers.set("x-user-country", countryCode);
-    response.headers.set("x-user-country-name", countryName || "Unknown");
-    response.headers.set("x-user-city", city || "Unknown");
-    response.headers.set("x-user-region", region || "Unknown");
-    response.headers.set("x-user-ip", ip);
-    response.headers.set("x-geo-source", source || "unknown");
-    response.headers.set("x-access-granted", "true");
+    // response.headers.set("x-user-country", countryCode);
+    // response.headers.set("x-user-country-name", countryName || "Unknown");
+    // response.headers.set("x-user-city", city || "Unknown");
+    // response.headers.set("x-user-region", region || "Unknown");
+    // response.headers.set("x-user-ip", ip);
+    // response.headers.set("x-geo-source", source || "unknown");
+    // response.headers.set("x-access-granted", "true");
 
     return response;
   } catch (error) {
