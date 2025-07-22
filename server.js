@@ -6,17 +6,83 @@ const app = express();
 
 let cityLookup;
 
+const express = require("express");
+const maxmind = require("maxmind");
+const path = require("path");
+const fs = require("fs");
+const https = require("https");
+
+const app = express();
+
+let cityLookup;
+
+// Function to download file from URL
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+
+    https
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download: ${response.statusCode}`));
+          return;
+        }
+
+        response.pipe(file);
+
+        file.on("finish", () => {
+          file.close();
+          resolve();
+        });
+
+        file.on("error", (err) => {
+          fs.unlink(dest, () => {}); // Delete the file on error
+          reject(err);
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
+      });
+  });
+}
+
 // Initialize MaxMind database
 async function initializeDatabase() {
   try {
-    // For Vercel, place the database file in the same directory as server.js
-    cityLookup = await maxmind.open("GeoLite2-Country.mmdb");
+    const tmpDir = "/tmp";
+    const dbPath = path.join(tmpDir, "GeoLite2-Country.mmdb");
+    const downloadUrl =
+      "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb";
+
+    // Check if database already exists in /tmp (for reuse in warm starts)
+    if (!fs.existsSync(dbPath)) {
+      console.log("Database not found in /tmp, downloading...");
+
+      // Ensure /tmp directory exists
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+
+      // Download the database file
+      await downloadFile(downloadUrl, dbPath);
+      console.log("Database downloaded successfully to /tmp");
+    } else {
+      console.log("Database found in /tmp, using existing file");
+    }
+
+    // Load the database
+    cityLookup = await maxmind.open(dbPath);
     console.log("MaxMind database loaded successfully");
   } catch (error) {
     console.error("Failed to load MaxMind database:", error.message);
-    console.log(
-      "Please ensure you have GeoLite2-Country.mmdb in the root directory"
-    );
+    console.log("Error details:", error);
+
+    // Fallback: If no database, block all access in production
+    if (process.env.VERCEL_ENV === "production") {
+      console.log(
+        "Production environment: blocking all access without database"
+      );
+    }
   }
 }
 
@@ -89,7 +155,7 @@ function checkCountryMiddleware(req, res, next) {
         ip: clientIP,
         country: countryName,
         countryCode: countryCode,
-        city: geoData.city ? geoData.city.names.en : "Unknown",
+        city: "N/A", // Country DB doesn't have city info
       };
       return next();
     } else {
@@ -330,6 +396,8 @@ app.get("/health", (req, res) => {
   res.json({
     status: "OK",
     databaseLoaded: !!cityLookup,
+    databasePath: "/tmp/GeoLite2-Country.mmdb",
+    databaseExists: fs.existsSync("/tmp/GeoLite2-Country.mmdb"),
     environment: process.env.VERCEL_ENV || "local",
     timestamp: new Date().toISOString(),
   });
