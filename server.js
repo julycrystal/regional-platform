@@ -6,7 +6,7 @@ const https = require("https");
 
 const app = express();
 
-let cityLookup;
+let cityLookup = null;
 
 // Function to download file from URL
 function downloadFile(url, dest) {
@@ -40,6 +40,8 @@ function downloadFile(url, dest) {
 
 // Initialize MaxMind database
 async function initializeDatabase() {
+  if (cityLookup) return;
+
   try {
     const tmpDir = "/tmp";
     const dbPath = path.join(tmpDir, "GeoLite2-Country.mmdb");
@@ -105,6 +107,7 @@ function checkCountryMiddleware(req, res, next) {
   try {
     if (!cityLookup) {
       // If database not loaded, block access in production
+      initializeDatabase();
       console.log("Database not loaded, blocking access");
       return res.status(404).send("Not Found");
     }
