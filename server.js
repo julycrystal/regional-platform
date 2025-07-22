@@ -1,14 +1,6 @@
 const express = require("express");
 const maxmind = require("maxmind");
 const path = require("path");
-
-const app = express();
-
-let cityLookup;
-
-const express = require("express");
-const maxmind = require("maxmind");
-const path = require("path");
 const fs = require("fs");
 const https = require("https");
 
