@@ -3,34 +3,36 @@ const maxmind = require("maxmind");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 let cityLookup;
 
 // Initialize MaxMind database
 async function initializeDatabase() {
   try {
-    // You need to download GeoLite2-Country.mmdb from MaxMind
-    // Place it in a 'databases' folder in your project root
-    const dbPath = path.join(__dirname, "databases", "GeoLite2-Country.mmdb");
+    // For Vercel, place the database file in the same directory as server.js
+    const dbPath = path.join(__dirname, "GeoLite2-City.mmdb");
     cityLookup = await maxmind.open(dbPath);
     console.log("MaxMind database loaded successfully");
   } catch (error) {
     console.error("Failed to load MaxMind database:", error.message);
     console.log(
-      "Please ensure you have downloaded GeoLite2-Country.mmdb and placed it in ./databases/"
+      "Please ensure you have GeoLite2-City.mmdb in the root directory"
     );
   }
 }
 
 // Helper function to get client IP
 function getClientIP(req) {
+  // Vercel provides the real IP in x-forwarded-for header
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+
   return (
-    req.headers["x-forwarded-for"] ||
     req.headers["x-real-ip"] ||
     req.connection.remoteAddress ||
     req.socket.remoteAddress ||
-    (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
     req.ip
   );
 }
@@ -45,9 +47,9 @@ function isAllowedCountry(countryCode) {
 function checkCountryMiddleware(req, res, next) {
   try {
     if (!cityLookup) {
-      // If database not loaded, allow access for development
-      console.log("Database not loaded, allowing access");
-      return next();
+      // If database not loaded, block access in production
+      console.log("Database not loaded, blocking access");
+      return res.status(404).send("Not Found");
     }
 
     let clientIP = getClientIP(req);
@@ -57,9 +59,13 @@ function checkCountryMiddleware(req, res, next) {
       clientIP = clientIP.substring(7);
     }
 
-    // Handle localhost/development - allow access
-    if (!clientIP || clientIP === "127.0.0.1" || clientIP === "::1") {
-      console.log("Localhost detected, allowing access");
+    // For Vercel preview deployments, you might want to allow localhost for testing
+    // Remove this in production
+    if (
+      process.env.VERCEL_ENV === "preview" &&
+      (!clientIP || clientIP === "127.0.0.1" || clientIP === "::1")
+    ) {
+      console.log("Preview environment - allowing localhost");
       return next();
     }
 
@@ -97,9 +103,6 @@ function checkCountryMiddleware(req, res, next) {
     return res.status(404).send("Not Found");
   }
 }
-
-// Serve static files (CSS, JS, images)
-// app.use("/static", express.static(path.join(__dirname, "public")));
 
 // Apply country check middleware to main routes
 app.use(checkCountryMiddleware);
@@ -312,42 +315,34 @@ app.get("/", (req, res) => {
 });
 
 // API endpoint to get country info (optional - for debugging)
-// app.get("/api/country", (req, res) => {
-//   if (req.geoData) {
-//     res.json(req.geoData);
-//   } else {
-//     res.json({
-//       message: "Country information not available",
-//       note: "This might be localhost or database not loaded",
-//     });
-//   }
-// });
+app.get("/api/country", (req, res) => {
+  if (req.geoData) {
+    res.json(req.geoData);
+  } else {
+    res.json({
+      message: "Country information not available",
+      note: "Database might not be loaded",
+    });
+  }
+});
 
-// Health check route (bypass country restriction)
-// app.get("/health", (req, res) => {
-//   res.json({
-//     status: "OK",
-//     databaseLoaded: !!cityLookup,
-//     timestamp: new Date().toISOString(),
-//   });
-// });
+// Health check route (bypass country restriction for monitoring)
+app.get("/health", (req, res) => {
+  res.json({
+    status: "OK",
+    databaseLoaded: !!cityLookup,
+    environment: process.env.VERCEL_ENV || "local",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // 404 handler for all other routes
-// app.use("*", (req, res) => {
-//   res.status(404).send("Not Found");
-// });
+app.all("*", (req, res) => {
+  res.status(404).send("Not Found");
+});
 
-// Initialize database and start server
-async function startServer() {
-  await initializeDatabase();
+// Initialize database
+initializeDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(
-      `Serving content only to visitors from India (IN) and Pakistan (PK)`
-    );
-    console.log(`All other countries will receive 404 errors`);
-  });
-}
-
-startServer().catch(console.error);
+// Export the Express app for Vercel
+module.exports = app;
