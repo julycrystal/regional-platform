@@ -1,7 +1,12 @@
+import { detectCountryFromHeaders } from '@/app/lib/actions';
+
 import "./globals.css";
 import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
+  // Detect country on the server side
+  const countryData = await detectCountryFromHeaders();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -14,6 +19,7 @@ export default function Home() {
               </div>
               <h1 className="text-xl font-bold text-gray-900">
                 BusyBee Web Design
+                {countryData}
               </h1>
             </div>
           </div>
