@@ -43,29 +43,8 @@ async function initializeDatabase() {
   if (cityLookup) return;
 
   try {
-    const tmpDir = "/tmp";
-    const dbPath = path.join(tmpDir, "GeoLite2-Country.mmdb");
-    const downloadUrl =
-      "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb";
-
-    // Check if database already exists in /tmp (for reuse in warm starts)
-    if (!fs.existsSync(dbPath)) {
-      console.log("Database not found in /tmp, downloading...");
-
-      // Ensure /tmp directory exists
-      if (!fs.existsSync(tmpDir)) {
-        fs.mkdirSync(tmpDir, { recursive: true });
-      }
-
-      // Download the database file
-      await downloadFile(downloadUrl, dbPath);
-      console.log("Database downloaded successfully to /tmp");
-    } else {
-      console.log("Database found in /tmp, using existing file");
-    }
-
     // Load the database
-    cityLookup = await maxmind.open(dbPath);
+    cityLookup = await maxmind.open("GeoLite2-Country.mmdb");
     console.log("MaxMind database loaded successfully");
   } catch (error) {
     console.error("Failed to load MaxMind database:", error.message);
@@ -107,7 +86,6 @@ function checkCountryMiddleware(req, res, next) {
   try {
     if (!cityLookup) {
       // If database not loaded, block access in production
-      initializeDatabase();
       console.log("Database not loaded, blocking access");
       return res.status(404).send("Not Found");
     }
@@ -384,18 +362,6 @@ app.get("/api/country", (req, res) => {
       note: "Database might not be loaded",
     });
   }
-});
-
-// Health check route (bypass country restriction for monitoring)
-app.get("/health", (req, res) => {
-  res.json({
-    status: "OK",
-    databaseLoaded: !!cityLookup,
-    databasePath: "/tmp/GeoLite2-Country.mmdb",
-    databaseExists: fs.existsSync("/tmp/GeoLite2-Country.mmdb"),
-    environment: process.env.VERCEL_ENV || "local",
-    timestamp: new Date().toISOString(),
-  });
 });
 
 // 404 handler for all other routes
