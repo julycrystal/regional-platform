@@ -181,7 +181,7 @@ app.get("/", (req, res) => {
                             <span class="text-black font-bold text-sm">🐝</span>
                         </div>
                         <h1 class="text-xl font-bold text-gray-900">
-                            BusyBee Web Design${countryData}
+                            BusyBee Web Design
                         </h1>
                     </div>
                 </div>
