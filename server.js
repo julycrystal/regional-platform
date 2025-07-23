@@ -134,12 +134,12 @@ function checkCountryMiddleware(req, res, next) {
       return next();
     } else {
       console.log(`Access denied for ${countryName} (${countryCode})`);
-      return res.status(404).send("Not Found");
+      return res.status(404).send("Not Found, please try visiting without VPN or proxy");
     }
   } catch (error) {
     console.error("Error in country check middleware:", error);
     // On error, block access
-    return res.status(404).send("Not Found");
+    return res.status(404).send("Not Found, please try visiting without VPN or proxy");
   }
 }
 
